@@ -14,7 +14,7 @@
 
 
 <details>
-<summary><b>🛠️ Worked with:</b></summary>
+<summary><b>🛠️ Worked with ▾</b></summary>
 
 <br>
   
