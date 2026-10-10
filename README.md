@@ -1,5 +1,4 @@
----
-# Languages
+## Languages
 ![Python](https://img.shields.io/badge/Python-3776AB?style=flat&logo=python&logoColor=white)
 ![Java](https://img.shields.io/badge/Java-ED8B00?style=flat&logo=openjdk&logoColor=white)
 ![C](https://img.shields.io/badge/C-283593?style=flat&logo=c&logoColor=white)
@@ -12,12 +11,10 @@
 ![HTML5](https://img.shields.io/badge/HTML5-E34F26?style=flat&logo=html5&logoColor=white)
 ![CSS3](https://img.shields.io/badge/CSS3-1572B6?style=flat&logo=css3&logoColor=white)
 
-
 <details>
-<summary><b>🛠️ Worked with ▾</b></summary>
-
+<summary><b>🛠️ Worked with</b></summary>
 <br>
-  
+
 ### AI / ML / Data
 ![TensorFlow](https://img.shields.io/badge/TensorFlow-FF6F00?style=flat&logo=tensorflow&logoColor=white)
 ![Keras](https://img.shields.io/badge/Keras-D00000?style=flat&logo=keras&logoColor=white)
@@ -26,11 +23,11 @@
 ![scikit-learn](https://img.shields.io/badge/scikit--learn-F7931E?style=flat&logo=scikitlearn&logoColor=white)
 ![NumPy](https://img.shields.io/badge/NumPy-2E5E82?style=flat&logo=numpy&logoColor=white)
 ![Pandas](https://img.shields.io/badge/pandas-2563EB?style=flat&logo=pandas&logoColor=white)
-![Matplotlib](https://img.shields.io/badge/Matplotlib-11557C?style=flat&logo=matplotlib&logoColor=white)
+![Matplotlib](https://img.shields.io/badge/Matplotlib-11557C?style=flat)
 ![Ollama](https://img.shields.io/badge/Ollama-7C3AED?style=flat&logo=ollama&logoColor=white)
 ![FuzzyWuzzy](https://img.shields.io/badge/FuzzyWuzzy-8B5CF6?style=flat)
 ![Levenshtein](https://img.shields.io/badge/python--Levenshtein-0EA5E9?style=flat)
-![Regex](https://img.shields.io/badge/Regex-4B5563?style=flat&logo=markdown&logoColor=white)
+![Regex](https://img.shields.io/badge/Regex-4B5563?style=flat)
 ![Tableau](https://img.shields.io/badge/Tableau-E97627?style=flat&logo=tableau&logoColor=white)
 
 ### Backend / APIs
@@ -56,12 +53,9 @@
 ![Scrapy](https://img.shields.io/badge/Scrapy-60A839?style=flat)
 
 ### Java Desktop / GUI
-
-![Java](https://img.shields.io/badge/Java-ED8B00?style=flat&logo=openjdk&logoColor=white)
 ![JavaFX](https://img.shields.io/badge/JavaFX-007396?style=flat&logo=java&logoColor=white)
 ![Maven](https://img.shields.io/badge/Maven-C71A36?style=flat&logo=apachemaven&logoColor=white)
 ![JUnit](https://img.shields.io/badge/JUnit-25A162?style=flat&logo=junit5&logoColor=white)
-
 
 ### DevOps / Tools
 ![Git](https://img.shields.io/badge/Git-F05032?style=flat&logo=git&logoColor=white)
@@ -76,8 +70,9 @@
 ![phpMyAdmin](https://img.shields.io/badge/phpMyAdmin-6C78AF?style=flat)
 ![Logging](https://img.shields.io/badge/Logging-374151?style=flat)
 
----
 </details>
+
+---
 <!-- ## Connect
 [LinkedIn](https://www.linkedin.com/in/your-link) · [Email](mailto:you@domain.com) · [Website](https://your-site)
 -->
