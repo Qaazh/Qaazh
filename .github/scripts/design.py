@@ -249,7 +249,8 @@ CAT_FRAMES = {
     "bat_a": ["    /\\_/\\", "   ( O.O )", "    > ^ <__", "   /     \\", "  (_)_ _(_)~"],
     "bat_b": ["    /\\_/\\", "   ( O.O )", "    > ^ <", "   /     \\_", "  (_)_ _(_)~"],
     "back_a": ["", "    \\_/   \\_/", "     ( ^ω^ )", "   (__\"\"\"\"__)~", ""],
-    "back_b": ["", "     |     |", "     ( ^ω^ )", "   (__\"\"\"\"__)~", ""],
+    "back_l": ["    \\_/", "     |    \\_/", "     ( °ω^ )", "   (__\"\"\"\"__)~", ""],
+    "back_r": ["          \\_/", "    \\_/    |", "     ( ^ω° )", "   (__\"\"\"\"__)~", ""],
     "startle": ["    /\\_/\\", "   ( O_O )", "   /|^^^|\\", "    |   |", "   _|___|_~"],
     "shiver_a": ["    /\\_/\\", "   ( >.< )", "    > ^ <", "   /|   |\\", "  (_)_ _(_)"],
     "shiver_b": ["     /\\_/\\", "    ( >.< )", "     > ^ <", "    /|   |\\", "   (_)_ _(_)"],
@@ -277,7 +278,7 @@ def cat_steps():
         (("yawn",), 1.2, None, None, False),
         (("look_r",), 1.4, None, "yarn_in", False),
         (("loaf",), 0.5, None, None, False),
-        (("back_a", "back_b"), 7.0, None, "play", False),
+        (("back_a", "back_l", "back_a", "back_r"), 9.6, None, "play", False),
         (("loaf",), 0.5, None, None, False),
         (("look_r",), 1.2, None, "yarn_off", False),
         (("sit", "sit_tail"), 1.0, None, None, False),
@@ -398,20 +399,21 @@ def cat_show(start, y, left, width, line_h, kt, cycle, shown):
     # It is drawn inside the cat's group, so its position is relative to the cat and lines up with the paws.
     here = positions["yarn_in"]
     yarn_y = y + 4 * line_h
-    above = -3 * line_h - 18
     play, off = labels["play"], labels["yarn_off"]
-    yarn = [(labels["yarn_in"], width - 60 - here, 0), (play - 0.5, left + 110, 0), (play + 0.2, left + 62, above)]
-    t, up = play + 0.2, True
-    while t + 0.6 < off - 0.5:
-        t += 0.6
-        yarn.append((t, left + (56 if up else 68), above + (12 if up else 0)))
-        up = not up
+    # One spot per paw pose, in step with the frames: centre, up at the left paw, centre, up at the right paw.
+    spots = [(left + 52, -3 * line_h - 12), (left + 30, -4 * line_h - 10),
+             (left + 52, -3 * line_h - 24), (left + 76, -4 * line_h - 10)]
+    yarn = [(labels["yarn_in"], width - 60 - here, 0), (play - 0.5, left + 110, 0), (play, *spots[0])]
+    t, k = play, 0
+    while t + 0.3 < off - 0.5:
+        t, k = t + 0.3, k + 1
+        yarn.append((t, *spots[k % 4]))
     yarn += [(off, left + 110, 0), (off + 1.6, width - 40 - here, 0)]
     parts.append(
         f'<g opacity="0">{visible(labels["yarn_in"], off + 1.6)}{moving(yarn)}'
-        f'<text x="0" y="{yarn_y}" font-size="15" fill="#F778BA">@'
-        f'<animateTransform attributeName="transform" type="rotate" values="0 4 {yarn_y - 5};360 4 {yarn_y - 5}" '
-        f'dur="1s" repeatCount="indefinite"/></text></g>'
+        f'<text x="0" y="{yarn_y}" font-size="20" font-weight="700" fill="#FF7EB6">@'
+        f'<animateTransform attributeName="transform" type="rotate" values="0 6 {yarn_y - 7};360 6 {yarn_y - 7}" '
+        f'dur="0.8s" repeatCount="indefinite"/></text></g>'
     )
     parts.append("</g>")
 
@@ -966,106 +968,7 @@ def languages():
             )
             boot += 0.15
             order += 1
-    parts.append(ufo(width, height))
     return svg(width, height, "Languages: " + ", ".join(names), "\n".join(parts))
-
-
-UFO_CYCLE = 120.0
-# (language to visit, arrival time in the loop, side it comes in from)
-UFO_VISITS = [("TypeScript", 6.0, "left"), ("Java", 36.0, "right"), ("Python", 66.0, "top"), ("C++", 96.0, "right")]
-
-
-def orbit_position(name, t, cx, cy):
-    """Where a language pill is at time t, and how close it is to the viewer (0 = back, 1 = front)."""
-    for rx, ry, period, ring in ORBITS:
-        if name in ring:
-            angle = 2 * math.pi * (ring.index(name) / len(ring) + t / period)
-            depth = (math.sin(angle) + 1) / 2
-            return cx + rx * math.cos(angle), cy + ry * math.sin(angle), depth
-    raise KeyError(name)
-
-
-def ufo(width, height):
-    """An 'AGI' saucer silhouette that visits languages in turn, follows each one and scans it."""
-    cx, cy = width / 2, height / 2
-    approach, scan, leave = 2.6, 6.0, 1.6
-    keys = [(0.0, -80.0, -40.0, 0.8, 0.0)]  # time, x, y, scale, opacity
-    beams = []
-    for name, start, side in UFO_VISITS:
-        entry = {"left": (-80, 30), "right": (width + 80, 30), "top": (cx + 120, -50)}[side]
-        x, y, depth = orbit_position(name, start + approach, cx, cy)
-        scale = 0.7 + 0.5 * depth
-        keys += [(start - 0.01, *entry, scale, 0.0), (start, *entry, scale, 1.0)]
-        for step in range(1, 9):
-            share = step / 8
-            ease = share * share * (3 - 2 * share)
-            tx, ty, d = orbit_position(name, start + approach * share, cx, cy)
-            keys.append((start + approach * share, entry[0] + (tx - entry[0]) * ease,
-                         entry[1] + (ty - 36 * scale - entry[1]) * ease, 0.7 + 0.5 * d, 1.0))
-        t = start + approach
-        while t < start + approach + scan:
-            t = min(t + 0.25, start + approach + scan)
-            tx, ty, d = orbit_position(name, t, cx, cy)
-            s = 0.7 + 0.5 * d
-            keys.append((t, tx, ty - 36 * s, s, 1.0))
-        beams.append((start + approach + 0.2, start + approach + scan - 0.2))
-        end = start + approach + scan
-        exit_x = width + 80 if side != "right" else -80
-        keys += [(end + leave, exit_x, -50.0, keys[-1][3], 1.0), (end + leave + 0.01, exit_x, -50.0, 0.8, 0.0)]
-    keys.append((UFO_CYCLE, -80.0, -40.0, 0.8, 0.0))
-
-    def kt(times):
-        return ";".join(f"{t / UFO_CYCLE:.5f}" for t in times)
-
-    times = [k[0] for k in keys]
-    timing = f'keyTimes="{kt(times)}" dur="{UFO_CYCLE:.0f}s" repeatCount="indefinite"'
-    beam_values, beam_times = ["0"], [0.0]
-    for a, b in beams:
-        beam_values += ["0", "1", "1", "0"]
-        beam_times += [a - 0.3, a, b, b + 0.3]
-    beam_values.append("0")
-    beam_times.append(UFO_CYCLE)
-    return (
-        '<linearGradient id="beam" x1="0" y1="0" x2="0" y2="1">'
-        f'<stop offset="0" stop-color="{GREEN}" stop-opacity="0.5"/>'
-        f'<stop offset="1" stop-color="{GREEN}" stop-opacity="0.05"/></linearGradient>'
-        '<g>'
-        f'<animateTransform attributeName="transform" type="translate" '
-        f'values="{";".join(f"{x:.1f},{y:.1f}" for _, x, y, _, _ in keys)}" {timing}/>'
-        f'<animate attributeName="opacity" calcMode="discrete" values="{";".join(f"{o:g}" for *_, o in keys)}" {timing}/>'
-        '<g>'
-        f'<animateTransform attributeName="transform" type="scale" '
-        f'values="{";".join(f"{s:.3f}" for _, _, _, s, _ in keys)}" {timing}/>'
-        # scanning beam down onto the language
-        f'<g opacity="0"><animate attributeName="opacity" values="{";".join(beam_values)}" '
-        f'keyTimes="{kt(beam_times)}" dur="{UFO_CYCLE:.0f}s" repeatCount="indefinite"/>'
-        '<path d="M -7 5 L 7 5 L 20 34 L -20 34 Z" fill="url(#beam)"/>'
-        + "".join(
-            f'<line x1="-8" y1="7" x2="8" y2="7" stroke="{GREEN}" stroke-opacity="0.8">'
-            f'<animate attributeName="y1" values="7;33" dur="0.9s" begin="{delay}s" repeatCount="indefinite"/>'
-            f'<animate attributeName="y2" values="7;33" dur="0.9s" begin="{delay}s" repeatCount="indefinite"/>'
-            f'<animate attributeName="x1" values="-7;-19" dur="0.9s" begin="{delay}s" repeatCount="indefinite"/>'
-            f'<animate attributeName="x2" values="7;19" dur="0.9s" begin="{delay}s" repeatCount="indefinite"/>'
-            f'<animate attributeName="stroke-opacity" values="0.9;0" dur="0.9s" begin="{delay}s" '
-            'repeatCount="indefinite"/></line>'
-            for delay in (0, 0.3, 0.6)
-        )
-        + "</g>"
-        # silhouette: dome and lens hull in one tone, AGI cut into the hull, three small lights
-        '<g><animateTransform attributeName="transform" type="rotate" values="-3;3;-3" dur="3s" '
-        'repeatCount="indefinite"/>'
-        f'<path d="M -9 -1 C -8.5 -10 8.5 -10 9 -1 Z" fill="{TEXT}"/>'
-        f'<path d="M -24 1 C -16 -3.2 16 -3.2 24 1 C 16 5.4 -16 5.4 -24 1 Z" fill="{TEXT}"/>'
-        f'<text x="0" y="3" text-anchor="middle" font-size="4.4" font-weight="700" fill="{BG}" '
-        'letter-spacing="0.8">AGI</text>'
-        + "".join(
-            f'<circle cx="{x}" cy="3.4" r="0.9" fill="{GREEN}">'
-            f'<animate attributeName="opacity" values="1;0.2;1" dur="1.2s" begin="{delay}s" repeatCount="indefinite"/>'
-            '</circle>'
-            for x, delay in ((-15, 0), (15, 0.6))
-        )
-        + "</g></g></g>"
-    )
 
 
 LOADOUT = [
