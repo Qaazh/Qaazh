@@ -25,31 +25,22 @@
 ![Pandas](https://img.shields.io/badge/pandas-2563EB?style=flat&logo=pandas&logoColor=white)
 ![Matplotlib](https://img.shields.io/badge/Matplotlib-11557C?style=flat)
 ![Ollama](https://img.shields.io/badge/Ollama-7C3AED?style=flat&logo=ollama&logoColor=white)
-![FuzzyWuzzy](https://img.shields.io/badge/FuzzyWuzzy-8B5CF6?style=flat)
-![Levenshtein](https://img.shields.io/badge/python--Levenshtein-0EA5E9?style=flat)
-![Regex](https://img.shields.io/badge/Regex-4B5563?style=flat)
 ![Tableau](https://img.shields.io/badge/Tableau-E97627?style=flat&logo=tableau&logoColor=white)
 
 ### Backend / APIs
 ![Flask](https://img.shields.io/badge/Flask-000000?style=flat&logo=flask&logoColor=white)
-![Flask JWT Extended](https://img.shields.io/badge/Flask--JWT--Extended-0F766E?style=flat)
-![Flask CORS](https://img.shields.io/badge/Flask--CORS-0EA5E9?style=flat)
 ![Node.js](https://img.shields.io/badge/Node.js-339933?style=flat&logo=nodedotjs&logoColor=white)
-![Axios](https://img.shields.io/badge/Axios-5A29E4?style=flat&logo=axios&logoColor=white)
 
 ### Frontend / UI
 ![React](https://img.shields.io/badge/React-61DAFB?style=flat&logo=react&logoColor=000000)
 ![Material UI](https://img.shields.io/badge/MUI-007FFF?style=flat&logo=mui&logoColor=white)
 ![Tkinter](https://img.shields.io/badge/Tkinter-0F766E?style=flat&logo=python&logoColor=white)
-![React Toastify](https://img.shields.io/badge/React%20Toastify-FF5A1F?style=flat)
 ![PWA](https://img.shields.io/badge/PWA-5A0FC8?style=flat&logo=pwa&logoColor=white)
 
 ### Databases / ORMs / Data I/O
 ![MySQL](https://img.shields.io/badge/MySQL-4479A1?style=flat&logo=mysql&logoColor=white)
 ![SQLite](https://img.shields.io/badge/SQLite-003B57?style=flat&logo=sqlite&logoColor=white)
 ![SQLAlchemy](https://img.shields.io/badge/SQLAlchemy-BB3E03?style=flat)
-![OpenPyXL](https://img.shields.io/badge/OpenPyXL-217346?style=flat&logo=microsoftexcel&logoColor=white)
-![JSON](https://img.shields.io/badge/JSON-4B5563?style=flat&logo=json&logoColor=white)
 ![Scrapy](https://img.shields.io/badge/Scrapy-60A839?style=flat)
 
 ### Java Desktop / GUI
@@ -59,15 +50,9 @@
 
 ### DevOps / Tools
 ![Git](https://img.shields.io/badge/Git-F05032?style=flat&logo=git&logoColor=white)
-![GitHub](https://img.shields.io/badge/GitHub-181717?style=flat&logo=github&logoColor=white)
 ![GitHub Actions](https://img.shields.io/badge/GitHub%20Actions-2088FF?style=flat&logo=githubactions&logoColor=white)
 ![Docker](https://img.shields.io/badge/Docker-2496ED?style=flat&logo=docker&logoColor=white)
 ![Jira](https://img.shields.io/badge/Jira-0052CC?style=flat&logo=jira&logoColor=white)
-![Slack](https://img.shields.io/badge/Slack-4A154B?style=flat&logo=slack&logoColor=white)
-![VS Code](https://img.shields.io/badge/VS%20Code-007ACC?style=flat&logo=visualstudiocode&logoColor=white)
 ![Jupyter](https://img.shields.io/badge/Jupyter-F37626?style=flat&logo=jupyter&logoColor=white)
-![Anaconda](https://img.shields.io/badge/Anaconda-44A833?style=flat&logo=anaconda&logoColor=white)
-![phpMyAdmin](https://img.shields.io/badge/phpMyAdmin-6C78AF?style=flat)
-![Logging](https://img.shields.io/badge/Logging-374151?style=flat)
 
 </details>
