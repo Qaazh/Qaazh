@@ -163,17 +163,17 @@ def header():
     body = "\n".join([
         f'<clipPath id="frame"><rect width="{width}" height="{height}" rx="12"/></clipPath>',
         '<radialGradient id="vignette" cx="0.5" cy="0.5" r="0.6">'
-        f'<stop offset="0" stop-color="{BG}" stop-opacity="0.95"/>'
-        f'<stop offset="0.55" stop-color="{BG}" stop-opacity="0.6"/>'
+        f'<stop offset="0" stop-color="{BG}" stop-opacity="0.75"/>'
+        f'<stop offset="0.4" stop-color="{BG}" stop-opacity="0.25"/>'
         f'<stop offset="1" stop-color="{BG}" stop-opacity="0"/></radialGradient>',
         '<g clip-path="url(#frame)">',
         f'<rect width="{width}" height="{height}" fill="{BG}"/>',
         '<linearGradient id="tint" x1="0" y1="0" x2="0" y2="1">'
-        f'<stop offset="0" stop-color="{sky_colors()[0]}" stop-opacity="0.7"/>'
-        f'<stop offset="0.6" stop-color="{sky_colors()[1]}" stop-opacity="0.6"/>'
-        f'<stop offset="1" stop-color="{sky_colors()[2]}" stop-opacity="0.5"/></linearGradient>',
+        f'<stop offset="0" stop-color="{sky_colors()[0]}" stop-opacity="0.28"/>'
+        f'<stop offset="0.6" stop-color="{sky_colors()[1]}" stop-opacity="0.2"/>'
+        f'<stop offset="1" stop-color="{sky_colors()[2]}" stop-opacity="0.15"/></linearGradient>',
         f'<rect width="{width}" height="{height}" fill="url(#tint)"/>',
-        rain(width, height, seed=7, opacity=0.55 if WEATHER == "clear" else 0.35),
+        rain(width, height, seed=7, opacity=0.85 if WEATHER == "clear" else 0.65),
         f'<rect width="{width}" height="{height}" fill="url(#vignette)"/>',
         weather_overlay(width, height),
         '<linearGradient id="scan" x1="0" y1="0" x2="0" y2="1">'
@@ -189,7 +189,46 @@ def header():
         '<animate attributeName="opacity" values="0.6;1;0.6" dur="4s" repeatCount="indefinite"/></text>'
         if STATUS else "",
     ])
-    return svg(width, height, "hello, world in many languages", body)
+    return svg(width, height, "hello, world in many languages", f'<g id="screen">{body}</g>' + glitch(width, height))
+
+
+def glitch(width, height):
+    """Every few seconds, slices of the header jump sideways with a red/cyan split for a fraction of a second."""
+    cycle = 6.5
+    bursts = [(0.62, 0.66), (0.67, 0.69)]
+
+    def flicker(values):
+        times = [0.0]
+        out = ["0"]
+        for (a, b), value in zip(bursts, values):
+            times += [a, a + 0.001, b, b + 0.001]
+            out += ["0", value, value, "0"]
+        times.append(1.0)
+        out.append("0")
+        return (f'values="{";".join(out)}" keyTimes="{";".join(f"{t:.3f}" for t in times)}" '
+                f'dur="{cycle}s" repeatCount="indefinite" calcMode="discrete"')
+
+    rng = random.Random(23)
+    parts = [
+        '<filter id="red"><feColorMatrix values="1 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 0.9 0"/></filter>',
+        '<filter id="cyan"><feColorMatrix values="0 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 0.9 0"/></filter>',
+        f'<use href="#screen" filter="url(#red)" opacity="0"><animate attributeName="opacity" {flicker(("0.7", "0.5"))}/>'
+        f'<animateTransform attributeName="transform" type="translate" {flicker(("-4,0", "3,0"))}/></use>',
+        f'<use href="#screen" filter="url(#cyan)" opacity="0"><animate attributeName="opacity" {flicker(("0.7", "0.5"))}/>'
+        f'<animateTransform attributeName="transform" type="translate" {flicker(("4,0", "-3,0"))}/></use>',
+    ]
+    for index in range(4):
+        top = rng.uniform(8, height - 22)
+        band = rng.uniform(5, 16)
+        shift = rng.choice((-1, 1)) * rng.uniform(10, 34)
+        parts.append(
+            f'<clipPath id="slice{index}"><rect x="0" y="{top:.0f}" width="{width}" height="{band:.0f}"/></clipPath>'
+            f'<g clip-path="url(#slice{index})"><use href="#screen" opacity="0">'
+            f'<animate attributeName="opacity" {flicker(("1", "1" if index % 2 else "0"))}/>'
+            f'<animateTransform attributeName="transform" type="translate" '
+            f'{flicker((f"{shift:.0f},0", f"{-shift / 2:.0f},0"))}/></use></g>'
+        )
+    return "".join(parts)
 
 
 INTRO = [
@@ -248,10 +287,15 @@ CAT_FRAMES = {
     "yawn": ["    /\\_/\\", "   ( >O< )", "    > ^ <", "   /     \\", "  (_)_ _(_)~"],
     "bat_a": ["    /\\_/\\", "   ( O.O )", "    > ^ <__", "   /     \\", "  (_)_ _(_)~"],
     "bat_b": ["    /\\_/\\", "   ( O.O )", "    > ^ <", "   /     \\_", "  (_)_ _(_)~"],
-    "back_a": ["", "    \\_/   \\_/", "     ( ^ω^ )", "   (__\"\"\"\"__)~", ""],
-    "back_l": ["    \\_/", "     |    \\_/", "     ( °ω^ )", "   (__\"\"\"\"__)~", ""],
-    "back_r": ["          \\_/", "    \\_/    |", "     ( ^ω° )", "   (__\"\"\"\"__)~", ""],
+    "lie_side": ["", "", "           /\\_/\\", "  ~(______( o.o )", "   (__(____)__)"],
+    "pass_l": ["", "", "           /\\_/\\", "  ~(______( o.o )", "   (__(____)___/   \\_"],
+    "pass_r": ["", "", "           /\\_/\\", "  ~(______( o.o )", "   (__(____)_/   \\___"],
     "startle": ["    /\\_/\\", "   ( O_O )", "   /|^^^|\\", "    |   |", "   _|___|_~"],
+    "hold_up": ["    /\\_/\\", "   ( 'o' )", "    > ^ <--", "   /     \\", "  (_)_ _(_)~"],
+    "hold_l": ["    /\\_/\\", "   ('o'  )", "    > ^ <--", "   /     \\", "  (_)_ _(_)~"],
+    "hold_r": ["    /\\_/\\", "   (  'o')", "    > ^ <--", "   /     \\", "  (_)_ _(_)~"],
+    "hold_blink": ["    /\\_/\\", "   ( -.- )", "    > ^ <--", "   /     \\", "  (_)_ _(_)~"],
+    "hold_startle": ["    /\\_/\\", "   ( O_O )", "    >^^^<--", "   /|   |\\", "  (_)_ _(_)~"],
     "shiver_a": ["    /\\_/\\", "   ( >.< )", "    > ^ <", "   /|   |\\", "  (_)_ _(_)"],
     "shiver_b": ["     /\\_/\\", "    ( >.< )", "     > ^ <", "    /|   |\\", "   (_)_ _(_)"],
     "loaf": ["", "", "    /\\_/\\____", "   ( ^.^     )~", "    \"\"\"\"\"\"\"\"\"\""],
@@ -277,9 +321,9 @@ def cat_steps():
         (("groom_a", "groom_b"), 4.0, None, None, False),
         (("yawn",), 1.2, None, None, False),
         (("look_r",), 1.4, None, "yarn_in", False),
-        (("loaf",), 0.5, None, None, False),
-        (("back_a", "back_l", "back_a", "back_r"), 9.6, None, "play", False),
-        (("loaf",), 0.5, None, None, False),
+        (("lie_side",), 0.8, None, None, False),
+        (("pass_l", "pass_r"), 9.0, None, "play", False),
+        (("lie_side",), 0.8, None, None, False),
         (("look_r",), 1.2, None, "yarn_off", False),
         (("sit", "sit_tail"), 1.0, None, None, False),
         (("look_l", "look_r"), 4.2, None, "bug", False),
@@ -287,10 +331,10 @@ def cat_steps():
         (("sit",), 1.2, None, "bug_gone", False),
     ]
     if WEATHER in ("rain", "storm"):
-        steps += [(("look_up", "look_l", "look_up", "look_r"), 6.0, None, "weather", False)]
+        steps += [(("hold_up", "hold_l", "hold_up", "hold_r"), 6.0, None, "weather", False)]
         if WEATHER == "storm":
-            steps += [(("startle",), 1.2, None, "flash", False), (("sit",), 1.0, None, None, False)]
-        steps += [(("look_up", "blink"), 5.0, None, None, False)]
+            steps += [(("hold_startle",), 1.2, None, "flash", False), (("hold_up",), 1.0, None, None, False)]
+        steps += [(("hold_up", "hold_blink"), 5.0, None, "weather_end", False)]
     elif WEATHER == "snow":
         steps += [(("walk_a", "walk_b"), 2.0, 0.42, "weather", False),
                   (("shiver_a", "shiver_b"), 4.0, None, None, False),
@@ -330,12 +374,14 @@ def cat_show(start, y, left, width, line_h, kt, cycle, shown):
             labels[label] = t
             positions[label] = x
         flip = (0.6 if names[0].startswith("look") else 0.25 if names[0].startswith("walk")
-                else 0.08 if names[0].startswith("shiver") else 0.5 if names[0] == "sit" else 0.3)
+                else 0.08 if names[0].startswith("shiver") else 0.5 if names[0] == "sit"
+                else 0.7 if names[0].startswith("pass") else 0.6 if names[0].startswith("hold") else 0.3)
         moment, index = t, 0
         while moment < t + seconds - 1e-6:
             frames[names[index % len(names)]].append((moment, min(moment + flip, t + seconds)))
             moment, index = moment + flip, index + 1
         if target is not None:
+            moves.append((t, x, 0.0))
             if jump:
                 moves.append((t + seconds / 2, (x + target * distance) / 2, -22.0))
             x = target * distance
@@ -395,19 +441,18 @@ def cat_show(start, y, left, width, line_h, kt, cycle, shown):
             f'<text x="{left + 140}" y="{y + line_h + 6}" font-size="11" fill="{MUTED}" opacity="0">purr...'
             f'{visible(at + 1, at + 7)}</text>'
         )
-    # A ball of yarn rolls up, the cat rolls onto its back and juggles it with its paws, then lets it roll away.
+    # A ball of yarn rolls up, the cat lies down side-on and swats it up and down with a front paw.
     # It is drawn inside the cat's group, so its position is relative to the cat and lines up with the paws.
     here = positions["yarn_in"]
     yarn_y = y + 4 * line_h
     play, off = labels["play"], labels["yarn_off"]
-    # One spot per paw pose, in step with the frames: centre, up at the left paw, centre, up at the right paw.
-    spots = [(left + 52, -3 * line_h - 12), (left + 30, -4 * line_h - 10),
-             (left + 52, -3 * line_h - 24), (left + 76, -4 * line_h - 10)]
+    # Rolling along the floor between the paws: pushed right by the near paw, back left by the far paw.
+    spots = [(left + 128, 0), (left + 112, 0)]
     yarn = [(labels["yarn_in"], width - 60 - here, 0), (play - 0.5, left + 110, 0), (play, *spots[0])]
     t, k = play, 0
-    while t + 0.3 < off - 0.5:
-        t, k = t + 0.3, k + 1
-        yarn.append((t, *spots[k % 4]))
+    while t + 0.7 < off - 0.8:
+        t, k = t + 0.7, k + 1
+        yarn.append((t, *spots[k % 2]))
     yarn += [(off, left + 110, 0), (off + 1.6, width - 40 - here, 0)]
     parts.append(
         f'<g opacity="0">{visible(labels["yarn_in"], off + 1.6)}{moving(yarn)}'
@@ -415,6 +460,21 @@ def cat_show(start, y, left, width, line_h, kt, cycle, shown):
         f'<animateTransform attributeName="transform" type="rotate" values="0 6 {yarn_y - 7};360 6 {yarn_y - 7}" '
         f'dur="0.8s" repeatCount="indefinite"/></text></g>'
     )
+    if WEATHER in ("rain", "storm"):
+        # An umbrella over the sitting cat while it watches the rain.
+        # Centred over the raised paw ("<--" ends around column 11); the stick runs down the middle into the paw.
+        ux, uy, half = left + 90, y - 16, 62
+        scallops = "".join(
+            f" Q {ux + half - (i + 0.5) * half / 2:.1f} {uy - 5} {ux + half - (i + 1) * half / 2:.1f} {uy}" for i in range(4)
+        )
+        parts.append(
+            f'<g opacity="0">{visible(labels["weather"], labels["weather_end"] + 5.0)}'
+            f'<path d="M {ux - half} {uy} Q {ux} {uy - 48} {ux + half} {uy}{scallops} Z" fill="{GREEN}" '
+            'fill-opacity="0.85"/>'
+            f'<path d="M {ux} {uy - 24} L {ux} {uy - 30}" stroke="{TEXT}" stroke-width="1.6"/>'
+            f'<path d="M {ux} {uy} L {ux} {y + 2 * line_h + 2} q 0 6 -5 6" stroke="{TEXT}" stroke-width="1.6" '
+            'fill="none"/></g>'
+        )
     parts.append("</g>")
 
     # A small bug buzzes around the cat's head, gets swatted at and flies off.
@@ -439,16 +499,54 @@ def cat_show(start, y, left, width, line_h, kt, cycle, shown):
     if WEATHER in ("rain", "storm"):
         rng = random.Random(9)
         drops = []
-        for _ in range(26):
+        # The umbrella canopy (same geometry as in the cat's group): drops that reach it splash off instead.
+        canopy_x, canopy_y, half = here + 90, y - 16, 62
+        fall = 5 * line_h + 70
+        for _ in range(34):
             dx = rng.uniform(-40, 260)
             duration = rng.uniform(0.6, 1.0)
+            begin = rng.uniform(0, duration)
+            x0 = here + dx
+            share = (x0 - 4 - (canopy_x - half)) / (2 * half)
+            if 0.03 < share < 0.97:
+                surface = canopy_y - 48 * 2 * share * (1 - share)
+                hit = (surface - (y - 70)) / fall
+                timing = f'dur="{duration:.2f}s" begin="-{begin:.2f}s" repeatCount="indefinite"'
+                drops.append(
+                    f'<line x1="{x0:.1f}" y1="{y - 80}" x2="{x0 - 3:.1f}" y2="{y - 70}" stroke="#9CC8EE" '
+                    f'stroke-opacity="0.7"><animateTransform attributeName="transform" type="translate" '
+                    f'values="0,0;{-6 * hit:.1f},{surface - (y - 70):.1f};{-6 * hit:.1f},{surface - (y - 70):.1f}" '
+                    f'keyTimes="0;{hit:.3f};1" {timing}/><animate attributeName="opacity" values="1;1;0;0" '
+                    f'keyTimes="0;{hit:.3f};{hit + 0.01:.3f};1" {timing}/></line>'
+                )
+                splash_x = x0 - 6 * hit - 3
+                for direction in (-1, 1):
+                    drops.append(
+                        f'<circle cx="{splash_x:.1f}" cy="{surface:.1f}" r="1" fill="#9CC8EE" opacity="0">'
+                        f'<animate attributeName="opacity" values="0;0;0.9;0" keyTimes="0;{hit:.3f};{hit + 0.02:.3f};'
+                        f'{min(hit + 0.35, 1):.3f}" {timing}/>'
+                        f'<animateTransform attributeName="transform" type="translate" '
+                        f'values="0,0;0,0;{direction * 4},-5;{direction * 7},-1" '
+                        f'keyTimes="0;{hit:.3f};{hit + 0.15:.3f};{min(hit + 0.35, 1):.3f}" {timing}/></circle>'
+                    )
+                continue
             drops.append(
-                f'<line x1="{here + dx:.1f}" y1="{y - 40}" x2="{here + dx - 3:.1f}" y2="{y - 30}" '
+                f'<line x1="{x0:.1f}" y1="{y - 80}" x2="{x0 - 3:.1f}" y2="{y - 70}" '
                 f'stroke="#9CC8EE" stroke-opacity="0.7"><animateTransform attributeName="transform" '
-                f'type="translate" values="0,0;-6,{5 * line_h + 30}" dur="{duration:.2f}s" '
-                f'begin="-{rng.uniform(0, duration):.2f}s" repeatCount="indefinite"/></line>'
+                f'type="translate" values="0,0;-6,{fall}" dur="{duration:.2f}s" '
+                f'begin="-{begin:.2f}s" repeatCount="indefinite"/></line>'
             )
-        parts.append(f'<g opacity="0">{visible(at, sleep_at)}{"".join(drops)}</g>')
+        # Water running off both edges of the canopy.
+        for edge in (-1, 1):
+            for delay in (0.0, 0.45):
+                drops.append(
+                    f'<circle cx="{canopy_x + edge * (half + 1)}" cy="{canopy_y + 1}" r="1.3" fill="#9CC8EE">'
+                    f'<animateTransform attributeName="transform" type="translate" values="0,0;0,{3 * line_h}" '
+                    f'dur="0.9s" begin="-{delay}s" repeatCount="indefinite"/>'
+                    f'<animate attributeName="opacity" values="0.9;0.9;0" keyTimes="0;0.7;1" dur="0.9s" '
+                    f'begin="-{delay}s" repeatCount="indefinite"/></circle>'
+                )
+        parts.append(f'<g opacity="0">{visible(at, labels["weather_end"] + 5.0)}{"".join(drops)}</g>')
         if "flash" in labels:
             flash = labels["flash"]
             parts.append(
@@ -1114,6 +1212,7 @@ def nest(piece, prefix, x, y, width):
     body = rest.rsplit("</svg>", 1)[0]
     body = re.sub(r'id="([^"]+)"', rf'id="{prefix}\1"', body)
     body = re.sub(r"url\(#([^)]+)\)", rf"url(#{prefix}\1)", body)
+    body = re.sub(r'href="#([^"]+)"', rf'href="#{prefix}\1"', body)
     height = h * width / w
     return (f'<svg x="{x}" y="{y}" width="{width}" height="{height:.1f}" viewBox="0 0 {w} {h}">{body}</svg>',
             height)
@@ -1130,7 +1229,7 @@ def hero(pieces):
             parts.append(
                 f'<rect x="{pad}" y="{y}" width="{inner}" height="{height:.1f}" rx="10" fill="none" '
                 f'stroke="{GREEN}" stroke-width="6" filter="url(#glow)" opacity="0.15">'
-                '<animate attributeName="opacity" values="0.08;0.3;0.08" dur="5s" repeatCount="indefinite"/></rect>'
+                '<animate attributeName="opacity" values="0.03;0.1;0.03" dur="6s" repeatCount="indefinite"/></rect>'
             )
         parts.append(nested)
         y += height + gap
