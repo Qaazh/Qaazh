@@ -22,9 +22,15 @@ jobs:
           python-version: "3.12"
       - name: Render images for the current time and weather in Munich
         run: python .github/scripts/sky.py "$RUNNER_TEMP/output"
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
       - name: Publish to the output branch
-        working-directory: ${{ runner.temp }}/output
         run: |
+          if [ ! -f "$RUNNER_TEMP/output/hero.svg" ]; then
+            echo "Nothing rendered this hour; the current images stay published."
+            exit 0
+          fi
+          cd "$RUNNER_TEMP/output"
           git init -q -b output
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
