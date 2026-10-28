@@ -1,5 +1,6 @@
 """Build the animated SVG assets for the profile README (black / green theme)."""
 
+import json
 import random
 import re
 import sys
@@ -23,6 +24,7 @@ ACCENTS = {
     "night": ("#3FB950", "#1F6F33", "#B7F7C4", "#03130A"),
 }
 PHASE, WEATHER, WEATHER_LINE = "night", "clear", None
+STATUS, SEASON, PROJECT_UPDATES = None, "autumn", {}
 GREEN, DIM_GREEN, HEAD, CORE = ACCENTS["night"]
 
 
@@ -64,9 +66,10 @@ def weather_overlay(width, height):
     return layer
 
 
-def use_theme(phase, weather, weather_line=None):
-    global PHASE, WEATHER, WEATHER_LINE, GREEN, DIM_GREEN, HEAD, CORE
+def use_theme(phase, weather, weather_line=None, status=None, season="autumn", project_updates=None):
+    global PHASE, WEATHER, WEATHER_LINE, GREEN, DIM_GREEN, HEAD, CORE, STATUS, SEASON, PROJECT_UPDATES
     PHASE, WEATHER, WEATHER_LINE = phase, weather, weather_line
+    STATUS, SEASON, PROJECT_UPDATES = status, season, project_updates or {}
     GREEN, DIM_GREEN, HEAD, CORE = ACCENTS[phase]
 
 
@@ -181,11 +184,14 @@ def header():
         f'<rect x="0.5" y="0.5" width="{width - 1}" height="{height - 1}" rx="12" '
         f'fill="none" stroke="{BORDER}"/>',
         *greetings,
+        f'<text x="18" y="{height - 12}" font-size="11" fill="{MUTED}"><tspan fill="{GREEN}">●</tspan> {escape(STATUS)}'
+        '<animate attributeName="opacity" values="0.6;1;0.6" dur="4s" repeatCount="indefinite"/></text>'
+        if STATUS else "",
     ])
     return svg(width, height, "hello, world in many languages", body)
 
 
-SESSION = [
+INTRO = [
     ("cmd", "ls ~/stack"),
     ("out", "languages  web  ai-data  databases  desktop  tools"),
     ("cmd", "cat ~/stack/web ~/stack/ai-data"),
@@ -193,64 +199,49 @@ SESSION = [
     ("out", "tensorflow  pytorch  keras  opencv  scikit-learn  pandas"),
     ("cmd", "gti status"),
     ("out", "bash: gti: command not found"),
-    ("cmd", "git status"),
-    ("out", "On branch main. Nothing to commit, working tree clean."),
-    ("cmd", "git log --oneline -4"),
+    ("cmd", "git log --oneline -3"),
     ("log", ("0d2b6f3", "docs: explain the regex nobody understands")),
     ("log", ("e91a4c0", "fix: off-by-one error (the second one)")),
     ("log", ("5c7d2b1", "feat: dark mode, because light attracts bugs")),
-    ("log", ("a3f9c21", "chore: remove 37 console.log(\"here\")")),
-    ("cmd", "docker compose up -d"),
-    ("ok", "✓ db    started"),
-    ("ok", "✓ api   started"),
-    ("ok", "✓ web   started"),
-    ("cmd", "pytest -q"),
-    ("dots", "." * 42),
-    ("ok", "42 passed in 0.87s"),
-    ("cmd", "neofetch"),
-    ("fetch", (" .------. ", "shell", "bash")),
-    ("fetch", (" | >_   | ", "editor", "vs code")),
-    ("fetch", (" |      | ", "languages", "11")),
-    ("fetch", (" '------' ", "focus", "web · ai · desktop")),
     ("fix", ("npm run biuld", "npm run build")),
-    ("out", "> compiling modules ..."),
     ("bar", None),
     ("ok", "✓ built in 1.42s — 0 errors, 0 warnings"),
-    ("cmd", "cat cat.txt"),
-    ("art", " /\\_/\\"),
-    ("blink", ("( o.o )", "( -.- )")),
-    ("art", " > ^ <"),
-    ("cmd", "brew coffee"),
-    ("steam", "   ( ("),
-    ("steam", "    ) )"),
-    ("art", " ........"),
-    ("art", " |      |]"),
-    ("art", " \\      /"),
-    ("ok", "✓ coffee ready"),
     ("cmd", "sudo rm -rf /"),
     ("out", "nice try."),
-    ("cmd", "git blame"),
-    ("out", "it was the intern."),
-    ("cmd", "spotify --now-playing"),
-    ("out", "♪ lo-fi beats to debug to"),
-    ("cmd", "cat ~/.pet"),
-    ("catpad", None),
-    ("catpad", None),
-    ("catpad", None),
-    ("catpad", None),
-    ("catpad", None),
-    ("cat", None),
-    ("cmd", "clear"),
 ]
+
+# One small command that reacts to the current weather or time of day.
+WEATHER_COMMANDS = {
+    "rain": ("umbrella --deploy", "ok", "✓ umbrella deployed"),
+    "storm": ("ups --status", "ok", "✓ on battery, everything still running"),
+    "snow": ("heater --on", "ok", "✓ heater on, the cat approves"),
+    "fog": ("fog-lights --on", "ok", "✓ fog lights on"),
+    "clouds": ("weather", "out", "cloudy. perfect coding weather."),
+    "clear-day": ("sunglasses --on", "ok", "✓ sunglasses on"),
+    "clear-night": ("sleep 8h", "out", "bash: sleep: command not found"),
+}
+
+
+def build_session():
+    session = list(INTRO)
+    if WEATHER_LINE:
+        session[2:2] = [("cmd", "weather"), ("out", WEATHER_LINE)]
+    key = WEATHER if WEATHER != "clear" else ("clear-night" if PHASE in ("night", "sunset") else "clear-day")
+    command, kind, reply = WEATHER_COMMANDS[key]
+    session += [("cmd", command), (kind, reply), ("cmd", "cat ~/.pet")]
+    session += [("catpad", None)] * 5 + [("cat", None), ("cmd", "clear")]
+    return session
 
 
 CAT_FRAMES = {
     "walk_a": ["", "           /\\_/\\", "  ~(______( o.o )", "    /_/  /_/ >", ""],
     "walk_b": ["", "           /\\_/\\", "  ~(______( o.o )", "     \\_\\  \\_\\>", ""],
     "sit": ["    /\\_/\\", "   ( o.o )", "    > ^ <", "   /     \\", "  (_)_ _(_)~"],
+    "sit_tail": ["    /\\_/\\", "   ( o.o )", "    > ^ <", "   /     \\", "  (_)_ _(_)_/"],
     "blink": ["    /\\_/\\", "   ( -.- )", "    > ^ <", "   /     \\", "  (_)_ _(_)~"],
     "look_l": ["    /\\_/\\", "   (o.o  )", "    > ^ <", "   /     \\", "  (_)_ _(_)~"],
     "look_r": ["    /\\_/\\", "   (  o.o)", "    > ^ <", "   /     \\", "  (_)_ _(_)~"],
+    "look_up": ["    /\\_/\\", "   ( 'o' )", "    > ^ <", "   /     \\", "  (_)_ _(_)~"],
     "groom_a": ["    /\\_/\\", "   ( ^.^ )/", "    > ^ <", "   /     \\", "  (_)_ _(_)~"],
     "groom_b": ["    /\\_/\\", "   ( ^.- )|", "    > ^ <", "   /     \\", "  (_)_ _(_)-"],
     "yawn": ["    /\\_/\\", "   ( >O< )", "    > ^ <", "   /     \\", "  (_)_ _(_)~"],
@@ -258,51 +249,81 @@ CAT_FRAMES = {
     "bat_b": ["    /\\_/\\", "   ( O.O )", "    > ^ <", "   /     \\_", "  (_)_ _(_)~"],
     "crouch_a": ["", "", "    /\\_/\\", "   ( O.O )_____", "   /_/_/___/_/ )~"],
     "crouch_b": ["", "", "    /\\_/\\", "   ( O.O )_____", "   /_/_/___/_/ )-"],
+    "startle": ["    /\\_/\\", "   ( O_O )", "   /|^^^|\\", "    |   |", "   _|___|_~"],
+    "shiver_a": ["    /\\_/\\", "   ( >.< )", "    > ^ <", "   /|   |\\", "  (_)_ _(_)"],
+    "shiver_b": ["     /\\_/\\", "    ( >.< )", "     > ^ <", "    /|   |\\", "   (_)_ _(_)"],
+    "loaf": ["", "", "    /\\_/\\____", "   ( ^.^     )~", "    \"\"\"\"\"\"\"\"\"\""],
+    "shades_on": ["    /\\_/\\", "   ( o_o)>⌐■-■", "    > ^ <", "   /     \\", "  (_)_ _(_)~"],
+    "loaf_shades": ["", "", "    /\\_/\\____", "   (⌐■_■     )~", "    \"\"\"\"\"\"\"\"\"\""],
     "stretch": ["", "                )~", "   /\\_/\\ ______/", "  ( -o- )      |", "   \\_\\_\\     /_/"],
     "knead_a": ["    /\\_/\\", "   ( ^_^ )", "    > ^ <", "   /     \\", "  (_)   _(_)~"],
     "knead_b": ["    /\\_/\\", "   ( ^_^ )", "    > ^ <", "   /     \\", "  (_)_   (_)~"],
     "sleep": ["", "", "    /\\_/\\_____", "   ( -.-       )~", "    (__)---(__)"],
 }
 
-# The routine: (frames, seconds, where to end up as a share of the walkable width, label, jump).
-CAT_STEPS = [
-    (("walk_a", "walk_b"), 6.0, 0.35, None, False),
-    (("sit",), 1.2, None, None, False),
-    (("look_l",), 0.8, None, None, False),
-    (("look_r",), 0.8, None, None, False),
-    (("blink",), 0.25, None, None, False),
-    (("sit",), 0.9, None, None, False),
-    (("groom_a", "groom_b"), 4.0, None, None, False),
-    (("yawn",), 1.4, None, None, False),
-    (("sit",), 2.0, None, "yarn_in", False),
-    (("bat_a", "bat_b"), 5.0, None, "bat", False),
-    (("crouch_a", "crouch_b"), 2.2, None, "crouch", False),
-    (("walk_a",), 1.0, 0.62, "pounce", True),
-    (("sit",), 2.0, None, None, False),
-    (("look_l", "look_r"), 4.2, None, "bug", False),
-    (("bat_a",), 0.5, None, None, False),
-    (("sit",), 1.6, None, "bug_gone", False),
-    (("stretch",), 3.0, None, None, False),
-    (("knead_a", "knead_b"), 4.0, None, None, False),
-    (("sleep",), 11.0, None, "sleep", False),
-    (("blink",), 0.4, None, None, False),
-    (("sit",), 1.0, None, None, False),
-    (("walk_a", "walk_b"), 5.0, 1.0, None, False),
-]
-CAT_TIME = sum(step[1] for step in CAT_STEPS)
+
+def cat_steps():
+    """The cat's routine as (frames, seconds, target share of the walkable width, label, jump)."""
+    steps = [
+        (("walk_a", "walk_b"), 6.0, 0.3, None, False),
+        (("sit",), 1.2, None, None, False),
+        (("look_l",), 0.8, None, None, False),
+        (("look_r",), 0.8, None, None, False),
+        (("blink",), 0.25, None, None, False),
+        (("sit", "sit_tail"), 2.0, None, None, False),
+        (("groom_a", "groom_b"), 4.0, None, None, False),
+        (("yawn",), 1.4, None, None, False),
+        (("sit",), 2.0, None, "yarn_in", False),
+        (("bat_a", "bat_b"), 5.0, None, "bat", False),
+        (("crouch_a", "crouch_b"), 2.2, None, "crouch", False),
+        (("walk_a",), 1.0, 0.55, "pounce", True),
+        (("sit", "sit_tail"), 2.4, None, None, False),
+        (("look_l", "look_r"), 4.2, None, "bug", False),
+        (("bat_a",), 0.5, None, None, False),
+        (("sit",), 1.6, None, "bug_gone", False),
+    ]
+    if WEATHER in ("rain", "storm"):
+        steps += [(("look_up", "look_l", "look_up", "look_r"), 6.0, None, "weather", False)]
+        if WEATHER == "storm":
+            steps += [(("startle",), 1.2, None, "flash", False), (("sit",), 1.0, None, None, False)]
+        steps += [(("look_up", "blink"), 5.0, None, None, False)]
+    elif WEATHER == "snow":
+        steps += [(("walk_a", "walk_b"), 2.0, 0.42, "weather", False),
+                  (("shiver_a", "shiver_b"), 4.0, None, None, False),
+                  (("loaf",), 8.0, None, "warm", False)]
+    elif WEATHER == "clear" and PHASE == "day":
+        steps += [(("shades_on",), 1.6, None, "weather", False), (("loaf_shades",), 10.0, None, None, False)]
+    else:
+        steps += [(("loaf",), 9.0, None, "weather", False)]
+    steps += [
+        (("stretch",), 3.0, None, None, False),
+        (("knead_a", "knead_b"), 4.0, None, None, False),
+        (("sleep",), 22.0 if PHASE == "night" else 13.0, None, "sleep", False),
+        (("blink",), 0.4, None, None, False),
+        (("sit", "sit_tail"), 2.0, None, None, False),
+        (("walk_a", "walk_b"), 5.0, 1.0, None, False),
+    ]
+    return steps
+
+
+def cat_duration():
+    return sum(step[1] for step in cat_steps())
 
 
 def cat_show(start, y, left, width, line_h, kt, cycle, shown):
-    """A detailed ASCII cat that plays for about a minute: walks, grooms, chases yarn and a bug, sleeps."""
+    """An ASCII cat that lives in the terminal for well over a minute and reacts to the weather."""
     distance = width - 240
     frames = {name: [] for name in CAT_FRAMES}
     labels = {}
     moves = [(start, 0.0, 0.0)]
+    positions = {}
     t, x = start, 0.0
-    for names, seconds, target, label, jump in CAT_STEPS:
+    for names, seconds, target, label, jump in cat_steps():
         if label:
             labels[label] = t
-        flip = 0.6 if names == ("look_l", "look_r") else 0.25 if names[0].startswith("walk") else 0.3
+            positions[label] = x
+        flip = (0.6 if names[0].startswith("look") else 0.25 if names[0].startswith("walk")
+                else 0.08 if names[0].startswith("shiver") else 0.5 if names[0] == "sit" else 0.3)
         moment, index = t, 0
         while moment < t + seconds - 1e-6:
             frames[names[index % len(names)]].append((moment, min(moment + flip, t + seconds)))
@@ -314,6 +335,12 @@ def cat_show(start, y, left, width, line_h, kt, cycle, shown):
             moves.append((t + seconds, x, 0.0))
         t += seconds
 
+    def keyed(points):
+        times = [0.0] + [p[0] for p in points] + [cycle]
+        values = [f"{points[0][1]:.1f},{points[0][2]:.1f}"] + [f"{px:.1f},{py:.1f}" for _, px, py in points]
+        values.append(values[-1])
+        return values, times
+
     def toggles(intervals):
         values, times = ["0"], [0.0]
         for a, b in intervals:
@@ -322,26 +349,32 @@ def cat_show(start, y, left, width, line_h, kt, cycle, shown):
         return (f'<animate attributeName="opacity" calcMode="discrete" values="{";".join(values)}" '
                 f'keyTimes="{kt(*times)}" dur="{cycle:.2f}s" repeatCount="indefinite"/>')
 
-    def path(points):
-        times = [0.0] + [p[0] for p in points] + [cycle]
-        values = [f"{points[0][1]:.1f},{points[0][2]:.1f}"] + [f"{px:.1f},{py:.1f}" for _, px, py in points]
-        values.append(values[-1])
-        return (f'<animateTransform attributeName="transform" type="translate" values="{";".join(values)}" '
-                f'keyTimes="{kt(*times)}" dur="{cycle:.2f}s" repeatCount="indefinite"/>')
-
     def visible(a, b):
         return (f'<animate attributeName="opacity" values="0;0;1;1;0;0" '
                 f'keyTimes="{kt(0, a, a + 0.05, b - 0.05, b, cycle)}" dur="{cycle:.2f}s" repeatCount="indefinite"/>')
 
-    parts = [f'<g opacity="0">{shown(start)}<g>{path(moves)}']
+    def moving(points, spline=False):
+        values, times = keyed(points)
+        ease = (f' calcMode="spline" keySplines="{";".join(["0.4 0 0.6 1"] * (len(times) - 1))}"'
+                if spline else "")
+        return (f'<animateTransform attributeName="transform" type="translate" values="{";".join(values)}" '
+                f'keyTimes="{kt(*times)}" dur="{cycle:.2f}s" repeatCount="indefinite"{ease}/>')
+
+    values, times = keyed(moves)
+    parts = [f'<g opacity="0">{shown(start)}<g>'
+             f'<animateTransform attributeName="transform" type="translate" values="{";".join(values)}" '
+             f'keyTimes="{kt(*times)}" dur="{cycle:.2f}s" repeatCount="indefinite"/>']
     for name, rows in CAT_FRAMES.items():
+        if not frames[name]:
+            continue
         text = "".join(
             f'<text x="{left}" y="{y + i * line_h}" font-size="13" fill="{TEXT}">{escape(row)}</text>'
             for i, row in enumerate(rows) if row
         )
         parts.append(f'<g opacity="0">{toggles(frames[name])}{text}</g>')
     sleep_at = labels["sleep"]
-    for i in range(6):
+    sleep_len = 22.0 if PHASE == "night" else 13.0
+    for i in range(int(sleep_len / 1.6) - 1):
         z_start = sleep_at + 0.6 + i * 1.6
         parts.append(
             f'<text x="{left + 130}" y="{y + 2 * line_h}" font-size="{11 + (i % 3) * 2}" fill="{MUTED}" opacity="0">z'
@@ -349,10 +382,16 @@ def cat_show(start, y, left, width, line_h, kt, cycle, shown):
             f'<animateTransform attributeName="transform" type="translate" values="0,0;0,0;10,-26;10,-26" '
             f'keyTimes="{kt(0, z_start, z_start + 1.5, cycle)}" dur="{cycle:.2f}s" repeatCount="indefinite"/></text>'
         )
+    if "warm" in labels or labels.get("weather") and WEATHER not in ("rain", "storm", "snow"):
+        at = labels.get("warm", labels["weather"])
+        parts.append(
+            f'<text x="{left + 140}" y="{y + line_h + 6}" font-size="11" fill="{MUTED}" opacity="0">purr...'
+            f'{visible(at + 1, at + 7)}</text>'
+        )
     parts.append("</g>")
 
     # A ball of yarn rolls in, gets batted around, then rolls away for the pounce.
-    cat_x = 0.35 * distance + left
+    cat_x = positions["yarn_in"] + left
     yarn_y = y + 4 * line_h
     yarn = [
         (labels["yarn_in"], width - 60, 0),
@@ -361,16 +400,11 @@ def cat_show(start, y, left, width, line_h, kt, cycle, shown):
         (labels["bat"] + 2.4, cat_x + 105, 0),
         (labels["bat"] + 3.6, cat_x + 135, -6),
         (labels["crouch"], cat_x + 120, 0),
-        (labels["pounce"], 0.62 * distance + left + 150, 0),
+        (labels["pounce"], 0.55 * distance + left + 150, 0),
         (labels["pounce"] + 3.0, width - 40, 0),
     ]
-    times = [0.0] + [p[0] for p in yarn] + [cycle]
-    values = [f"{yarn[0][1]:.1f},{yarn[0][2]}"] + [f"{px:.1f},{py}" for _, px, py in yarn]
-    values.append(values[-1])
     parts.append(
-        f'<g opacity="0">{visible(labels["yarn_in"], labels["pounce"] + 3.0)}'
-        f'<animateTransform attributeName="transform" type="translate" values="{";".join(values)}" '
-        f'keyTimes="{kt(*times)}" dur="{cycle:.2f}s" repeatCount="indefinite"/>'
+        f'<g opacity="0">{visible(labels["yarn_in"], labels["pounce"] + 3.0)}{moving(yarn)}'
         f'<text x="0" y="{yarn_y}" font-size="15" fill="#F778BA">@'
         f'<animateTransform attributeName="transform" type="rotate" values="0 4 {yarn_y - 5};360 4 {yarn_y - 5}" '
         f'dur="1s" repeatCount="indefinite"/></text>'
@@ -378,7 +412,7 @@ def cat_show(start, y, left, width, line_h, kt, cycle, shown):
     )
 
     # A small bug buzzes around the cat's head, gets swatted at and flies off.
-    bug_x = 0.62 * distance + left
+    bug_x = positions["bug"] + left
     bug = [
         (labels["bug"], bug_x + 160, y - 4),
         (labels["bug"] + 1.0, bug_x + 40, y + 10),
@@ -387,17 +421,53 @@ def cat_show(start, y, left, width, line_h, kt, cycle, shown):
         (labels["bug_gone"], bug_x + 70, y - 2),
         (labels["bug_gone"] + 1.6, width - 20, y - 30),
     ]
-    times = [0.0] + [p[0] for p in bug] + [cycle]
-    values = [f"{bug[0][1]:.1f},{bug[0][2]:.1f}"] + [f"{px:.1f},{py:.1f}" for _, px, py in bug]
-    values.append(values[-1])
     parts.append(
-        f'<g opacity="0">{visible(labels["bug"], labels["bug_gone"] + 1.6)}'
-        f'<animateTransform attributeName="transform" type="translate" values="{";".join(values)}" '
-        f'keyTimes="{kt(*times)}" dur="{cycle:.2f}s" repeatCount="indefinite" calcMode="spline" '
-        f'keySplines="{";".join(["0.4 0 0.6 1"] * (len(times) - 1))}"/>'
+        f'<g opacity="0">{visible(labels["bug"], labels["bug_gone"] + 1.6)}{moving(bug, spline=True)}'
         f'<text x="0" y="0" font-size="12" fill="{GREEN}">*'
         '<animate attributeName="opacity" values="1;0.4;1" dur="0.2s" repeatCount="indefinite"/></text></g>'
     )
+
+    # Weather props: raindrops to watch, a lightning flash, a heater, or the sun to bask in.
+    at = labels["weather"]
+    here = positions["weather"] + left
+    if WEATHER in ("rain", "storm"):
+        rng = random.Random(9)
+        drops = []
+        for _ in range(26):
+            dx = rng.uniform(-40, 260)
+            duration = rng.uniform(0.6, 1.0)
+            drops.append(
+                f'<line x1="{here + dx:.1f}" y1="{y - 40}" x2="{here + dx - 3:.1f}" y2="{y - 30}" '
+                f'stroke="#9CC8EE" stroke-opacity="0.7"><animateTransform attributeName="transform" '
+                f'type="translate" values="0,0;-6,{5 * line_h + 30}" dur="{duration:.2f}s" '
+                f'begin="-{rng.uniform(0, duration):.2f}s" repeatCount="indefinite"/></line>'
+            )
+        parts.append(f'<g opacity="0">{visible(at, sleep_at)}{"".join(drops)}</g>')
+        if "flash" in labels:
+            flash = labels["flash"]
+            parts.append(
+                f'<rect x="0" y="0" width="{width}" height="{y + 6 * line_h}" fill="#FFFFFF" opacity="0">'
+                f'<animate attributeName="opacity" values="0;0;0.25;0;0.12;0;0" '
+                f'keyTimes="{kt(0, flash - 0.05, flash, flash + 0.1, flash + 0.2, flash + 0.35, cycle)}" '
+                f'dur="{cycle:.2f}s" repeatCount="indefinite"/></rect>'
+            )
+    elif WEATHER == "snow":
+        heater_x = 0.42 * distance + left + 200
+        parts.append(
+            f'<g opacity="0">{visible(at, sleep_at + 6)}'
+            f'<text x="{heater_x:.1f}" y="{y + 3 * line_h}" font-size="13" fill="#FF8A3D">[≡≡≡]</text>'
+            f'<text x="{heater_x + 8:.1f}" y="{y + 2 * line_h}" font-size="12" fill="#FF8A3D" opacity="0.6">~ ~ ~'
+            '<animate attributeName="opacity" values="0.2;0.8;0.2" dur="1.6s" repeatCount="indefinite"/>'
+            '<animateTransform attributeName="transform" type="translate" values="0,4;0,-4" dur="1.6s" '
+            'repeatCount="indefinite"/></text></g>'
+        )
+    elif WEATHER == "clear" and PHASE == "day":
+        parts.append(
+            f'<g opacity="0">{visible(at, at + 11)}'
+            f'<text x="{here + 280:.1f}" y="{y + line_h}" font-size="13" fill="#FFD866">\\ | /</text>'
+            f'<text x="{here + 280:.1f}" y="{y + 2 * line_h}" font-size="13" fill="#FFD866">- O -</text>'
+            f'<text x="{here + 280:.1f}" y="{y + 3 * line_h}" font-size="13" fill="#FFD866">/ | \\</text></g>'
+        )
     parts.append("</g>")
     return "".join(parts)
 
@@ -409,10 +479,7 @@ def terminal():
     height = top + line_h * rows - 6
     bar_time, dots_time = 1.6, 1.2
     rng = random.Random(3)
-    session = list(SESSION)
-    if WEATHER_LINE:
-        focus = next(i for i, (kind, content) in enumerate(session) if kind == "fetch" and content[1] == "focus")
-        session.insert(focus + 1, ("fetch", ("          ", "weather", WEATHER_LINE)))
+    session = build_session()
 
     def keystrokes(text):
         return sum(rng.uniform(0.04, 0.12) for _ in text)
@@ -437,7 +504,7 @@ def terminal():
         else:
             starts.append(t)
             typing.append(0)
-            pause = {"bar": bar_time + 0.2, "dots": dots_time + 0.2, "cat": CAT_TIME + 0.3, "catpad": 0.01}
+            pause = {"bar": bar_time + 0.2, "dots": dots_time + 0.2, "cat": cat_duration() + 0.3, "catpad": 0.01}
             t += pause.get(kind, rng.uniform(0.12, 0.3))
     cycle = t + 0.6
 
@@ -674,6 +741,43 @@ def sky_colors(phase=None, weather=None):
     return top, middle, horizon
 
 
+def seasonal(width, height, phase, weather):
+    """Falling leaves in autumn, petals in spring, a light frost sparkle in winter, fireflies on summer nights."""
+    rng = random.Random(17)
+    parts = []
+    if SEASON in ("autumn", "spring"):
+        colors = ("#D9822B", "#B5651D", "#E3A857") if SEASON == "autumn" else ("#F7B2C4", "#FAD1DC", "#F48FB1")
+        for _ in range(14):
+            x = rng.uniform(0, width)
+            duration = rng.uniform(7, 12)
+            parts.append(
+                f'<g><ellipse cx="{x:.0f}" cy="-6" rx="3.2" ry="1.6" fill="{rng.choice(colors)}" opacity="0.85">'
+                f'<animateTransform attributeName="transform" type="rotate" values="0 {x:.0f} -6;360 {x:.0f} -6" '
+                f'dur="{rng.uniform(2, 4):.1f}s" repeatCount="indefinite"/></ellipse>'
+                f'<animateTransform attributeName="transform" type="translate" '
+                f'values="0,0;{rng.uniform(-60, -20):.0f},{height / 2:.0f};{rng.uniform(-120, -60):.0f},{height + 12}" '
+                f'dur="{duration:.1f}s" begin="-{rng.uniform(0, duration):.1f}s" repeatCount="indefinite"/></g>'
+            )
+    elif SEASON == "winter" and weather != "snow":
+        for _ in range(30):
+            parts.append(
+                f'<circle cx="{rng.uniform(0, width):.0f}" cy="{rng.uniform(height * 0.55, height):.0f}" r="0.9" '
+                f'fill="#FFFFFF"><animate attributeName="opacity" values="0;0.9;0" dur="{rng.uniform(2, 4):.1f}s" '
+                f'begin="-{rng.uniform(0, 4):.1f}s" repeatCount="indefinite"/></circle>'
+            )
+    elif SEASON == "summer" and phase == "night" and weather == "clear":
+        for _ in range(16):
+            x, y = rng.uniform(0, width), rng.uniform(height * 0.5, height - 10)
+            parts.append(
+                f'<circle cx="{x:.0f}" cy="{y:.0f}" r="1.6" fill="#E3F57A">'
+                f'<animate attributeName="opacity" values="0;1;0" dur="{rng.uniform(1.5, 3):.1f}s" '
+                f'begin="-{rng.uniform(0, 3):.1f}s" repeatCount="indefinite"/>'
+                f'<animateTransform attributeName="transform" type="translate" values="0,0;{rng.uniform(-12, 12):.0f},'
+                f'{rng.uniform(-8, 8):.0f};0,0" dur="{rng.uniform(4, 7):.1f}s" repeatCount="indefinite"/></circle>'
+            )
+    return "".join(parts)
+
+
 def footer(phase="night", weather="clear"):
     """Sky above the clouds for a time of day and weather, with drifting cloud layers and a passing jet."""
     width, height = 900, 170
@@ -748,6 +852,7 @@ def footer(phase="night", weather="clear"):
         f'<g>{near}<animateTransform attributeName="transform" type="translate" '
         f'values="0,0;-900,0" dur="45s" repeatCount="indefinite"/></g>',
         weather_layer,
+        seasonal(width, height, phase, weather),
         "</g>",
         f'<rect x="0.5" y="0.5" width="{width - 1}" height="{height - 1}" rx="12" fill="none" stroke="{BORDER}"/>',
     ])
@@ -903,8 +1008,11 @@ def projects():
         y = 34 + (index + 1) * line_h
         if 0 < index <= len(PROJECTS):
             description = PROJECTS[index - 1][1]
+            updated = PROJECT_UPDATES.get(PROJECTS[index - 1][0])
             inner = (f'<tspan fill="{MUTED}">{line[:4]}</tspan><tspan fill="{GREEN}">{escape(line[4:])}</tspan>'
-                     f'<tspan fill="{MUTED}">{escape(description)}</tspan>')
+                     f'<tspan fill="{MUTED}">{escape(description)}</tspan>'
+                     + (f'<tspan fill="{BORDER}">  ·  </tspan><tspan fill="#6E7681">{escape(updated)}</tspan>'
+                        if updated else ""))
         else:
             inner = f'<tspan fill="{TEXT if index == 0 else MUTED}">{escape(line)}</tspan>'
         parts.append(
@@ -989,5 +1097,7 @@ elif "--previews" in sys.argv:
         use_theme(phase, weather, line)
         render(OUT / f"{phase}-{weather}")
 else:
-    use_theme(option("--phase", "night"), option("--weather", "clear"), option("--line"))
+    updates = option("--projects")
+    use_theme(option("--phase", "night"), option("--weather", "clear"), option("--line"), option("--status"),
+              option("--season", "autumn"), json.loads(updates) if updates else None)
     print(f"terminal cycle {render(OUT):.1f}s")
