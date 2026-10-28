@@ -618,37 +618,14 @@ WEATHERS = ("clear", "clouds", "fog", "rain", "snow", "storm")
 
 
 def jet(color):
-    """Side view of a canard delta-wing fighter with canopy, afterburner, navigation lights and contrails."""
+    """Small side-view jet silhouette with a fading contrail, nose pointing right."""
     return (
         '<linearGradient id="trail" x1="0" x2="1">'
         f'<stop offset="0" stop-color="{color}" stop-opacity="0"/>'
-        f'<stop offset="1" stop-color="{color}" stop-opacity="0.4"/></linearGradient>'
-        '<linearGradient id="canopy" x1="0" y1="0" x2="0" y2="1">'
-        '<stop offset="0" stop-color="#9CC8EE"/><stop offset="1" stop-color="#1B2B3A"/></linearGradient>'
-        '<linearGradient id="burner" x1="1" x2="0">'
-        '<stop offset="0" stop-color="#FFE7A3"/><stop offset="0.4" stop-color="#FF8A3D"/>'
-        '<stop offset="1" stop-color="#FF8A3D" stop-opacity="0"/></linearGradient>'
-        '<rect x="-250" y="-0.5" width="216" height="1.4" rx="0.7" fill="url(#trail)"/>'
-        '<rect x="-230" y="3.2" width="196" height="1" rx="0.5" fill="url(#trail)" opacity="0.6"/>'
-        '<rect x="-46" y="-0.6" width="16" height="3.4" rx="1.7" fill="url(#burner)">'
-        '<animate attributeName="width" values="14;18;12;16;14" dur="0.4s" repeatCount="indefinite"/>'
-        '<animate attributeName="x" values="-44;-48;-42;-46;-44" dur="0.4s" repeatCount="indefinite"/></rect>'
-        # fuselage with intake underneath
-        f'<path d="M34 1 C28 -0.6 20 -2 12 -2.4 L-22 -2.6 L-30 -1.6 L-31 2.6 L-22 3.4 L-4 4.2 '
-        f'L2 6 L12 6 L14 3.4 L22 2.6 C28 2.2 32 1.8 34 1 Z" fill="{color}"/>'
-        # vertical fin
-        f'<path d="M-16 -2.5 L-26 -14 L-30 -14 L-29 -2.5 Z" fill="{color}"/>'
-        # delta wing seen edge-on, and the canard
-        f'<path d="M6 3 L-24 6.2 L-26 4.2 L-4 2.4 Z" fill="{color}" opacity="0.85"/>'
-        f'<path d="M20 0.8 L12 -1.6 L10 -0.6 L17 1.6 Z" fill="{color}" opacity="0.9"/>'
-        # canopy
-        '<path d="M22 -1.6 C18 -5.4 10 -5.6 6 -2.4 Z" fill="url(#canopy)"/>'
-        # navigation lights: red on the fin, white strobe under the fuselage
-        '<circle cx="-28" cy="-14" r="1" fill="#FF5F57">'
-        '<animate attributeName="opacity" values="1;0.2;1" dur="1.4s" repeatCount="indefinite"/></circle>'
-        '<circle cx="-8" cy="4.6" r="0.9" fill="#FFFFFF">'
-        '<animate attributeName="opacity" values="0;0;1;0;0" keyTimes="0;0.8;0.82;0.86;1" dur="1.8s" '
-        'repeatCount="indefinite"/></circle>'
+        f'<stop offset="1" stop-color="{color}" stop-opacity="0.35"/></linearGradient>'
+        '<rect x="-220" y="-1" width="206" height="1.6" rx="0.8" fill="url(#trail)"/>'
+        f'<path d="M16 0 L10 -1.6 L-4 -2 L-10 -7 L-14 -7 L-11 -2 L-14 -1.4 L-14 1.4 L-4 1.8 '
+        f'L-8 5 L-5 5 L4 1.8 L10 1.6 Z" fill="{color}"/>'
     )
 
 
@@ -766,12 +743,8 @@ def footer(phase="night", weather="clear"):
         f'values="0,0;-900,0" dur="120s" repeatCount="indefinite"/></g>' if high else "",
         f'<g>{far}<animateTransform attributeName="transform" type="translate" '
         f'values="0,0;-900,0" dur="90s" repeatCount="indefinite"/></g>',
-        f'<g><animateMotion dur="16s" repeatCount="indefinite" rotate="auto" '
-        f'path="M -60 115 C 120 120, 220 60, 380 70 S 600 120, 720 85 S 900 30, 1180 45"/>'
-        # a quick barrel roll in the middle of the pass
-        '<g><animateTransform attributeName="transform" type="scale" '
-        'values="1,1;1,1;1,-1;1,1;1,1" keyTimes="0;0.42;0.47;0.52;1" dur="16s" repeatCount="indefinite"/>'
-        f'{jet(jet_color)}</g></g>',
+        f'<g>{jet(jet_color)}<animateMotion dur="16s" repeatCount="indefinite" '
+        f'path="M -40 110 C 300 95, 600 70, 1150 55" rotate="auto"/></g>',
         f'<g>{near}<animateTransform attributeName="transform" type="translate" '
         f'values="0,0;-900,0" dur="45s" repeatCount="indefinite"/></g>',
         weather_layer,
