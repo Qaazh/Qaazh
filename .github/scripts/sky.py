@@ -1,6 +1,7 @@
 """Pick the time of day and weather in Munich, then render the profile images for them."""
 
 import json
+import os
 import subprocess
 import sys
 import urllib.request
@@ -13,6 +14,7 @@ URL = (
     "&current=temperature_2m,weather_code&daily=sunrise,sunset&timezone=Europe%2FBerlin&forecast_days=1"
 )
 HOUR = timedelta(hours=1)
+USER = "Qaazh"
 
 # WMO weather codes as used by Open-Meteo: https://open-meteo.com/en/docs
 WEATHER_CODES = [
@@ -45,20 +47,54 @@ def weather_for(code):
     return "clouds", "cloudy"
 
 
+def season_for(month):
+    return {12: "winter", 1: "winter", 2: "winter", 3: "spring", 4: "spring", 5: "spring",
+            6: "summer", 7: "summer", 8: "summer"}.get(month, "autumn")
+
+
+def project_updates(now):
+    """'updated N days ago' for each public repository, or nothing if GitHub cannot be reached."""
+    request = urllib.request.Request(f"https://api.github.com/users/{USER}/repos?per_page=100")
+    token = os.environ.get("GITHUB_TOKEN")
+    if token:
+        request.add_header("Authorization", f"Bearer {token}")
+    try:
+        with urllib.request.urlopen(request, timeout=20) as response:
+            repos = json.load(response)
+    except OSError as error:
+        print(f"project activity skipped: {error}")
+        return {}
+    updates = {}
+    for repo in repos:
+        pushed = datetime.fromisoformat(repo["pushed_at"].replace("Z", "+00:00")).replace(tzinfo=None)
+        days = (now - pushed).days
+        updates[repo["name"]] = ("updated today" if days < 1 else "updated yesterday" if days < 2
+                                 else f"updated {days} days ago" if days < 60 else f"updated {days // 30} months ago")
+    return updates
+
+
 def main():
     out = sys.argv[1]
-    with urllib.request.urlopen(URL, timeout=20) as response:
-        data = json.load(response)
+    try:
+        with urllib.request.urlopen(URL, timeout=20) as response:
+            data = json.load(response)
+    except OSError as error:
+        # Keep the last published images rather than failing; the next hourly run tries again.
+        print(f"weather unavailable, keeping the current images: {error}")
+        return
     now = datetime.fromisoformat(data["current"]["time"])
     sunrise = datetime.fromisoformat(data["daily"]["sunrise"][0])
     sunset = datetime.fromisoformat(data["daily"]["sunset"][0])
     phase = phase_for(now, sunrise, sunset)
     weather, label = weather_for(data["current"]["weather_code"])
-    line = f"munich · {round(data['current']['temperature_2m'])}°C · {label}"
+    temperature = round(data["current"]["temperature_2m"])
+    line = f"munich · {temperature}°C · {label}"
+    status = f"munich · {now:%H:%M} · {temperature}°C · {label}"
     print(f"{now:%Y-%m-%d %H:%M} {phase} {weather} ({line})")
     design = Path(__file__).with_name("design.py")
     subprocess.run(
-        [sys.executable, str(design), out, "--phase", phase, "--weather", weather, "--line", line],
+        [sys.executable, str(design), out, "--phase", phase, "--weather", weather, "--line", line,
+         "--status", status, "--season", season_for(now.month), "--projects", json.dumps(project_updates(now))],
         check=True,
     )
 
